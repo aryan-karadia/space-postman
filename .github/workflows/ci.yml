@@ -57,7 +57,21 @@ jobs:
       - run: npm ci
       - run: npm run build --workspace=backend
 
-  # ─── Stage 4: Test Backend ──────────────────────────────────────
+  # ─── Stage 4: Test Frontend ─────────────────────────────────────
+  test-frontend:
+    name: Test Frontend
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test --workspace=frontend
+
+  # ─── Stage 5: Test Backend ──────────────────────────────────────
   test-backend:
     name: Test Backend
     needs: build-backend
@@ -71,10 +85,10 @@ jobs:
       - run: npm ci
       - run: npm test --workspace=backend
 
-  # ─── Stage 5: Deploy Frontend (Vercel) ──────────────────────────
+  # ─── Stage 6: Deploy Frontend (Vercel) ──────────────────────────
   deploy-frontend:
     name: Deploy Frontend to Vercel
-    needs: [build-frontend, test-backend]
+    needs: [build-frontend, test-frontend, test-backend]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -93,10 +107,10 @@ jobs:
           working-directory: frontend
           vercel-args: '--prod'
 
-  # ─── Stage 6: Deploy Backend (AWS SAM) ──────────────────────────
+  # ─── Stage 7: Deploy Backend (AWS SAM) ──────────────────────────
   deploy-backend:
     name: Deploy Backend to AWS
-    needs: [build-frontend, test-backend]
+    needs: [build-frontend, test-frontend, test-backend]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:

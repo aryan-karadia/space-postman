@@ -58,7 +58,7 @@ describe('createLetter', () => {
       { subject: 'Test', body: 'Test body' },
       'https://space-postman.vercel.app'
     );
-    expect(result.headers['Access-Control-Allow-Origin']).toBe(
+    expect(result.headers?.['Access-Control-Allow-Origin']).toBe(
       'https://space-postman.vercel.app'
     );
   });

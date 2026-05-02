@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "npm run dev --workspace=frontend",
     "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
+    "test": "npm run test --workspaces --if-present",
     "lint": "eslint . --ext .ts,.tsx,.js,.cjs",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.cjs --fix",
     "format": "prettier --write .",

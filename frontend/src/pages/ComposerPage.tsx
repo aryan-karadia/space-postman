@@ -52,11 +52,11 @@ export function ComposerPage() {
         style={{
           background: 'linear-gradient(to top, rgba(0, 245, 255, 0.1) 0%, rgba(255, 0, 255, 0.02) 50%, transparent 100%)',
           clipPath: 'polygon(15% 100%, 85% 100%, 100% 0, 0 0)',
+          transformOrigin: 'bottom'
         }}
         initial={{ opacity: 0, scaleY: 0 }}
         animate={{ opacity: [0.2, 0.5, 0.3, 0.6, 0.2], scaleY: [0.9, 1.05, 1, 1.02, 0.95] }}
         transition={{ duration: 3, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-        style={{ transformOrigin: "bottom" }}
       />
       <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 w-[50%] max-w-md h-[20px] bg-neon-cyan/40 blur-[20px] rounded-[100%] z-0" />
 
