@@ -1,129 +1,84 @@
-/**
- * ─── createLetter Handler ────────────────────────────────────────
- * POST /letters
- *
- * Validates input, generates a unique ID, stores the letter as a
- * JSON object in S3, and returns the shareable URL.
- *
- * Request body:
- *   { sender?, recipient?, subject, body }
- *
- * Response 201:
- *   { id, url, createdAt, expiresAt }
- *
- * Error 400:
- *   { error: "VALIDATION_ERROR", message, fields }
- */
-import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { s3Client, BUCKET_NAME } from '../utils/s3Client.js';
-import { generateId } from '../utils/idGenerator.js';
-import { buildResponse } from '../utils/response.js';
-import type { APIGatewayProxyResult } from 'aws-lambda';
+// backend/src/handlers/createLetter.ts
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { v4 as uuidv4 } from 'uuid';
+import { createLetterSchema } from '../schemas/letter.js';
+import { Letter } from '../types/index.js';
 
-/** Character limits — must match frontend CHAR_LIMITS */
-const LIMITS = {
-  sender: 50,
-  recipient: 50,
-  subject: 100,
-  body: 5000,
-};
+const s3Client = new S3Client({});
+const BUCKET_NAME = process.env.BUCKET_NAME || 'space-postman-letters';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+const LETTER_TTL_DAYS = parseInt(process.env.LETTER_TTL_DAYS || '30', 10);
 
-/** Letter expiry in days */
-const EXPIRY_DAYS = 30;
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  try {
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'invalid_input', message: 'Missing request body' }),
+      };
+    }
 
-/** Letter input type – shape of request body */
-interface LetterInput {
-  sender?: string;
-  recipient?: string;
-  subject: string;
-  body: string;
-}
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(event.body);
+    } catch (e) {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'invalid_input', message: 'Invalid JSON body' }),
+      };
+    }
 
-/**
- * Validates letter input.
- * @returns {{ valid: boolean, fields?: object }}
- */
-function validate(data: any): { valid: boolean; fields?: Record<string, string> } {
-  const fields: Record<string, string> = {};
+    const result = createLetterSchema.safeParse(parsedBody);
 
-  if (!data.subject || typeof data.subject !== 'string' || !data.subject.trim()) {
-    fields.subject = 'Subject is required.';
-  } else if (data.subject.length > LIMITS.subject) {
-    fields.subject = `Subject must be ${LIMITS.subject} characters or fewer.`;
-  }
+    if (!result.success) {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'invalid_input', message: result.error.errors[0].message }),
+      };
+    }
 
-  if (!data.body || typeof data.body !== 'string' || !data.body.trim()) {
-    fields.body = 'Message body is required.';
-  } else if (data.body.length > LIMITS.body) {
-    fields.body = `Body must be ${LIMITS.body} characters or fewer.`;
-  }
+    const { content } = result.data;
+    const id = uuidv4();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + LETTER_TTL_DAYS * 24 * 60 * 60 * 1000);
 
-  if (data.sender && data.sender.length > LIMITS.sender) {
-    fields.sender = `Sender must be ${LIMITS.sender} characters or fewer.`;
-  }
+    const letter: Letter = {
+      id,
+      content, // Max 10,000 chars as validated by Zod
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+    };
 
-  if (data.recipient && data.recipient.length > LIMITS.recipient) {
-    fields.recipient = `Recipient must be ${LIMITS.recipient} characters or fewer.`;
-  }
-
-  return {
-    valid: Object.keys(fields).length === 0,
-    fields,
-  };
-}
-
-export async function createLetter(data: any, allowedOrigin: string): Promise<APIGatewayProxyResult> {
-  // ─── Validate ────────────────────────────────────────────────
-  const validation = validate(data);
-  if (!validation.valid) {
-    return buildResponse(
-      400,
-      {
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid transmission data.',
-        fields: validation.fields,
-      },
-      allowedOrigin
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: `letters/${id}.json`,
+        Body: JSON.stringify(letter),
+        ContentType: 'application/json',
+      })
     );
+
+    const url = `${BASE_URL}/letter/${id}`;
+
+    return {
+      statusCode: 200,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({
+        id,
+        url,
+        expiresAt: letter.expiresAt,
+      }),
+    };
+  } catch (error) {
+    console.error('Error creating letter:', error);
+    return {
+      statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'internal_error', message: 'An unexpected error occurred' }),
+    };
   }
-
-  // ─── Build letter object ─────────────────────────────────────
-  const id = generateId();
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-
-  const input = data as LetterInput;
-  const letter = {
-    id,
-    sender: input.sender?.trim() || 'Anonymous',
-    recipient: input.recipient?.trim() || '',
-    subject: input.subject.trim(),
-    body: input.body.trim(),
-    createdAt: now.toISOString(),
-    expiresAt: expiresAt.toISOString(),
-  };
-
-  // ─── Store in S3 ─────────────────────────────────────────────
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: `letters/${id}.json`,
-      Body: JSON.stringify(letter),
-      ContentType: 'application/json',
-    })
-  );
-
-  // ─── Return shareable info ───────────────────────────────────
-  const publicUrl = process.env.PUBLIC_FRONTEND_URL || 'https://space-postman.vercel.app';
-
-  return buildResponse(
-    201,
-    {
-      id: letter.id,
-      url: `${publicUrl}/letter/${letter.id}`,
-      createdAt: letter.createdAt,
-      expiresAt: letter.expiresAt,
-    },
-    allowedOrigin
-  );
-}
+};

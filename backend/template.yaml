@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Space Postman Backend
+
+Parameters:
+  BaseUrl:
+    Type: String
+    Default: 'http://localhost:5173'
+  LetterTtlDays:
+    Type: Number
+    Default: 30
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        BUCKET_NAME: !Ref LettersBucket
+        BASE_URL: !Ref BaseUrl
+        LETTER_TTL_DAYS: !Ref LetterTtlDays
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
+    MethodSettings:
+      - ResourcePath: "/*"
+        HttpMethod: "*"
+        ThrottlingRateLimit: 10
+        ThrottlingBurstLimit: 10
+
+Resources:
+  LettersBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireLetters
+            Status: Enabled
+            Prefix: letters/
+            ExpirationInDays: !Ref LetterTtlDays
+
+  LettersBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LettersBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+            Resource: !Sub "${LettersBucket.Arn}/letters/*"
+
+  CreateLetterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: dist/handlers/createLetter.handler
+      Events:
+        CreateLetterEvent:
+          Type: Api
+          Properties:
+            Path: /letters
+            Method: post
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref LettersBucket
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  BucketName:
+    Description: "S3 Bucket Name"
+    Value: !Ref LettersBucket
