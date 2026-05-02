@@ -13,7 +13,7 @@
  */
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { HomePage } from '@/pages/HomePage';
+import { ComposerPage } from '@/pages/ComposerPage';
 import { LetterPage } from '@/pages/LetterPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
@@ -22,7 +22,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<ComposerPage />} />
           <Route path="/letter/:id" element={<LetterPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

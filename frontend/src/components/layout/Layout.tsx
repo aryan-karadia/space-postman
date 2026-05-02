@@ -16,7 +16,7 @@ import { Footer } from './Footer';
 
 export function Layout() {
   return (
-    <div className="relative flex min-h-screen flex-col bg-void-black star-field">
+    <div className="relative flex min-h-screen flex-col bg-void-950 star-field">
       <div className="scanline-overlay" />
       <Header />
       <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-8">
