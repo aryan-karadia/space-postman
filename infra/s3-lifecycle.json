@@ -1,7 +1,7 @@
 {
   "Rules": [
     {
-      "ID": "AutoDeleteLetters",
+      "ID": "expire-letters-30d",
       "Status": "Enabled",
       "Filter": {
         "Prefix": "letters/"

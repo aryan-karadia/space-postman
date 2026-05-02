@@ -1,73 +1,67 @@
-import type { Config } from 'tailwindcss';
+import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
+  content: [
+    './index.html',
+    './src/**/*.{ts,tsx}',
+  ],
   theme: {
     extend: {
-      colors: {
-        'neon-cyan': '#00F0FF',
-        'neon-magenta': '#FF00DE',
-        'neon-yellow': '#FFE81F',
-        'holo-blue': '#4A90D9',
-        'void-black': '#0A0A0F',
-        'space-dark': '#12121A',
-        'space-mid': '#1A1A2E',
-        'nebula-gray': '#2A2A3E',
-        'star-white': '#E0E0FF',
-        'dust-gray': '#8888AA',
-      },
       fontFamily: {
-        display: ['Orbitron', 'sans-serif'],
-        mono: ['Share Tech Mono', 'monospace'],
+        display: ['Orbitron', 'sans-serif'],       // headings, logo, UI chrome
+        mono: ['"Share Tech Mono"', 'monospace'],   // letter body, code-like text
+      },
+      colors: {
+        // shadcn CSS variable bridge — required for shadcn components to work
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        // SW cyberpunk palette — use these in page/component classes
+        neon: {
+          cyan:    '#00f5ff',   // primary accent — links, borders, glow
+          magenta: '#ff00ff',   // secondary accent — destructive, alerts
+          amber:   '#ffb700',   // tertiary accent — hover states, highlights
+        },
+        void: {
+          950: '#02020a',       // page background
+          900: '#07071a',       // card background
+          800: '#0e0e2e',       // elevated surface
+          700: '#1a1a3e',       // border / separator
+        },
+      },
+      // Scanline and glitch animations referenced in animations.css
+      keyframes: {
+        scanline: {
+          '0%': { transform: 'translateY(-100%)' },
+          '100%': { transform: 'translateY(100vh)' },
+        },
+        glitch: {
+          '0%, 100%': { clipPath: 'inset(0 0 98% 0)' },
+          '20%': { clipPath: 'inset(33% 0 33% 0)', transform: 'translateX(-4px)' },
+          '40%': { clipPath: 'inset(66% 0 5% 0)',  transform: 'translateX(4px)' },
+          '60%': { clipPath: 'inset(10% 0 60% 0)', transform: 'translateX(-2px)' },
+          '80%': { clipPath: 'inset(50% 0 20% 0)', transform: 'translateX(2px)' },
+        },
+        flicker: {
+          '0%, 19%, 21%, 100%': { opacity: '1' },
+          '20%': { opacity: '0.6' },
+        },
       },
       animation: {
-        glitch: 'glitch 0.5s ease-in-out infinite alternate',
-        scanline: 'scanline 4s linear infinite',
-        'neon-pulse': 'neonPulse 2s ease-in-out infinite',
-        'fade-in-up': 'fadeInUp 0.4s ease-out forwards',
-        float: 'float 6s ease-in-out infinite',
-      },
-      keyframes: {
-        glitch: {
-          '0%': { textShadow: '2px 0 #FF00DE, -2px 0 #00F0FF' },
-          '100%': { textShadow: '-2px 0 #FF00DE, 2px 0 #00F0FF' },
-        },
-        scanline: {
-          '0%': { backgroundPosition: '0 0' },
-          '100%': { backgroundPosition: '0 100vh' },
-        },
-        neonPulse: {
-          '0%, 100%': {
-            boxShadow: '0 0 5px #00F0FF, 0 0 10px #00F0FF, 0 0 20px #00F0FF',
-          },
-          '50%': {
-            boxShadow: '0 0 10px #00F0FF, 0 0 20px #00F0FF, 0 0 40px #00F0FF',
-          },
-        },
-        fadeInUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
-        },
-      },
-      borderRadius: {
-        cyber: '2px',
-      },
-      boxShadow: {
-        'neon-cyan': '0 0 5px #00F0FF, 0 0 10px #00F0FF',
-        'neon-magenta': '0 0 5px #FF00DE, 0 0 10px #FF00DE',
-        'neon-yellow': '0 0 5px #FFE81F, 0 0 10px #FFE81F',
-        'card-glow': '0 0 15px rgba(0, 240, 255, 0.1), inset 0 0 15px rgba(0, 240, 255, 0.05)',
-      },
-      backdropBlur: {
-        cyber: '12px',
+        scanline: 'scanline 6s linear infinite',
+        glitch:   'glitch 2.5s steps(1) infinite',
+        flicker:  'flicker 4s ease-in-out infinite',
       },
     },
   },
-  plugins: [],
-};
+  plugins: [require('tailwindcss-animate')],  // required by shadcn
+}
 
-export default config;
+export default config
