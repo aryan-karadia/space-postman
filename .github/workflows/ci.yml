@@ -1,0 +1,116 @@
+name: CI — Lint, Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # ─── Stage 1: Lint ──────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  # ─── Stage 2: Build Frontend ────────────────────────────────────
+  build-frontend:
+    name: Build Frontend
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --workspace=frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  # ─── Stage 3: Build Backend ─────────────────────────────────────
+  build-backend:
+    name: Build Backend
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --workspace=backend
+
+  # ─── Stage 4: Test Backend ──────────────────────────────────────
+  test-backend:
+    name: Test Backend
+    needs: build-backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test --workspace=backend
+
+  # ─── Stage 5: Deploy Frontend (Vercel) ──────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    needs: [build-frontend, test-backend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --workspace=frontend
+      - uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: frontend
+          vercel-args: '--prod'
+
+  # ─── Stage 6: Deploy Backend (AWS SAM) ──────────────────────────
+  deploy-backend:
+    name: Deploy Backend to AWS
+    needs: [build-frontend, test-backend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - uses: aws-actions/setup-sam@v2
+      - run: cd backend && npm ci --omit=dev
+      - run: cd infra && sam build
+      - run: cd infra && sam deploy --no-confirm-changeset --no-fail-on-empty-changeset

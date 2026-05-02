@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.vercel/
+cdk.out/
+
+# Environment variables (never commit secrets)
+.env
+.env.local
+.env.production
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# AWS SAM
+.aws-sam/
+packaged.yaml
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/

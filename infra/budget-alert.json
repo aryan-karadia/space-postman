@@ -1,0 +1,57 @@
+{
+  "BudgetName": "SpacePostmanFreeTierGuard",
+  "BudgetLimit": {
+    "Amount": "0.01",
+    "Unit": "USD"
+  },
+  "BudgetType": "COST",
+  "TimeUnit": "MONTHLY",
+  "TimePeriod": {
+    "Start": "2026-01-01T00:00:00Z",
+    "End": "2087-01-01T00:00:00Z"
+  },
+  "CostFilters": {},
+  "CostTypes": {
+    "IncludeTax": true,
+    "IncludeSubscription": true,
+    "UseBlended": false,
+    "IncludeRefund": false,
+    "IncludeCredit": false,
+    "IncludeUpfront": true,
+    "IncludeRecurring": true,
+    "IncludeOtherSubscription": true,
+    "IncludeSupport": true,
+    "IncludeDiscount": true,
+    "UseAmortized": false
+  },
+  "NotificationsWithSubscribers": [
+    {
+      "Notification": {
+        "NotificationType": "ACTUAL",
+        "ComparisonOperator": "GREATER_THAN",
+        "Threshold": 80,
+        "ThresholdType": "PERCENTAGE"
+      },
+      "Subscribers": [
+        {
+          "SubscriptionType": "EMAIL",
+          "Address": "karadiaaryan@gmail.com"
+        }
+      ]
+    },
+    {
+      "Notification": {
+        "NotificationType": "ACTUAL",
+        "ComparisonOperator": "GREATER_THAN",
+        "Threshold": 100,
+        "ThresholdType": "PERCENTAGE"
+      },
+      "Subscribers": [
+        {
+          "SubscriptionType": "EMAIL",
+          "Address": "karadiaaryan@gmail.com"
+        }
+      ]
+    }
+  ]
+}

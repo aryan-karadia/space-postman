@@ -1,0 +1,14 @@
+{
+  "Rules": [
+    {
+      "ID": "AutoDeleteLetters",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "letters/"
+      },
+      "Expiration": {
+        "Days": 30
+      }
+    }
+  ]
+}

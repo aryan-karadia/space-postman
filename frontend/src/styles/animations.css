@@ -1,0 +1,93 @@
+/*
+ * ─── Space Postman — Animation Keyframes ─────────────────────────
+ * Extended animations for glitch effects, flicker, and transitions.
+ * Core keyframes live in tailwind.config.js; these are supplementary.
+ */
+
+/* Glitch clip-path distortion for larger text */
+@keyframes glitchClip {
+  0% {
+    clip-path: inset(40% 0 61% 0);
+    transform: translate(-2px, 2px);
+  }
+  20% {
+    clip-path: inset(92% 0 1% 0);
+    transform: translate(1px, -1px);
+  }
+  40% {
+    clip-path: inset(43% 0 1% 0);
+    transform: translate(-1px, 3px);
+  }
+  60% {
+    clip-path: inset(25% 0 58% 0);
+    transform: translate(3px, 1px);
+  }
+  80% {
+    clip-path: inset(54% 0 7% 0);
+    transform: translate(-3px, -2px);
+  }
+  100% {
+    clip-path: inset(58% 0 43% 0);
+    transform: translate(2px, -3px);
+  }
+}
+
+/* Holographic shimmer for cards */
+@keyframes holoShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Terminal cursor blink */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Data stream — vertical scroll effect */
+@keyframes dataStream {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 100%;
+  }
+}
+
+/* Flicker effect for neon signs */
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    opacity: 0.4;
+  }
+}
+
+/* Utility classes for supplementary animations */
+.animate-glitch-clip {
+  animation: glitchClip 0.8s ease-in-out infinite alternate;
+}
+
+.animate-holo-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 240, 255, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: holoShimmer 3s ease-in-out infinite;
+}
+
+.animate-cursor-blink {
+  animation: cursorBlink 1s step-end infinite;
+}
+
+.animate-flicker {
+  animation: flicker 3s linear infinite;
+}

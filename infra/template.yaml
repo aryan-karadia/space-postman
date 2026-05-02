@@ -1,0 +1,121 @@
+# ─── AWS SAM Template ─────────────────────────────────────────────
+# Defines Lambda function, API Gateway, and S3 bucket.
+#
+# FREE TIER GUARDRAILS:
+#   - Lambda: 128MB memory, 5s timeout
+#   - S3: Lifecycle rule auto-deletes after 30 days
+#   - API Gateway: REST API (free tier: 1M calls/mo for 12 months)
+#   - CloudWatch: 7-day log retention
+# ──────────────────────────────────────────────────────────────────
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Space Postman — Anonymous galactic letter service
+
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: nodejs18.x
+    Environment:
+      Variables:
+        S3_BUCKET_NAME: !Ref LettersBucket
+        ALLOWED_ORIGINS: !Ref AllowedOrigins
+        PUBLIC_FRONTEND_URL: !Ref PublicFrontendUrl
+
+Parameters:
+  AllowedOrigins:
+    Type: String
+    Default: 'https://space-postman.vercel.app'
+    Description: CORS allowed origins
+
+  PublicFrontendUrl:
+    Type: String
+    Default: 'https://space-postman.vercel.app'
+    Description: Public frontend URL for generating shareable links
+
+Resources:
+  # ─── S3 Bucket for Letter Storage ─────────────────────────────
+  LettersBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: space-postman-letters
+      LifecycleConfiguration:
+        Rules:
+          - Id: AutoDeleteLetters
+            Status: Enabled
+            Prefix: 'letters/'
+            ExpirationInDays: 30
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # ─── Lambda Function ──────────────────────────────────────────
+  SpacePostmanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/index.handler
+      CodeUri: ../backend/
+      Description: Handles letter creation and retrieval
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref LettersBucket
+      Events:
+        CreateLetter:
+          Type: Api
+          Properties:
+            Path: /letters
+            Method: POST
+            RestApiId: !Ref SpacePostmanApi
+        GetLetter:
+          Type: Api
+          Properties:
+            Path: /letters/{id}
+            Method: GET
+            RestApiId: !Ref SpacePostmanApi
+        OptionsLetters:
+          Type: Api
+          Properties:
+            Path: /letters
+            Method: OPTIONS
+            RestApiId: !Ref SpacePostmanApi
+        OptionsLetterId:
+          Type: Api
+          Properties:
+            Path: /letters/{id}
+            Method: OPTIONS
+            RestApiId: !Ref SpacePostmanApi
+
+  # ─── API Gateway ──────────────────────────────────────────────
+  SpacePostmanApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      # API Gateway throttling (baseline defense)
+      MethodSettings:
+        - HttpMethod: '*'
+          ResourcePath: '/*'
+          ThrottlingBurstLimit: 100
+          ThrottlingRateLimit: 50
+
+  # ─── CloudWatch Log Retention ─────────────────────────────────
+  SpacePostmanFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SpacePostmanFunction}'
+      RetentionInDays: 7
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${SpacePostmanApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+
+  BucketName:
+    Description: S3 bucket name
+    Value: !Ref LettersBucket
